@@ -54,15 +54,37 @@ scope: repository
   </template_usage>
 
   <tech_stack>
-    <item>opencode CLI — agent runtime (`opencode --model zai-coding-plan/glm-5 --agent Orchestrator`)</item>
+    <item>Python 3.12+ — primary language for orchestrator, API, and system logic</item>
+    <item>FastAPI 0.115+ — async web framework for webhook receiver (The Ear)</item>
+    <item>Pydantic 2.x — data validation and settings management</item>
+    <item>uv 0.10+ — Astral Python package manager (10-100x faster than pip)</item>
+    <item>pytest 8.0+ — testing framework with async support</item>
+    <item>Ruff 0.9+ — fast Python linter and formatter</item>
+    <item>MyPy 1.0+ — static type checking</item>
+    <item>Docker + Docker Compose — containerization</item>
+    <item>Redis 5.0+ — caching and state management</item>
+    <item>opencode CLI — AI agent runtime (`opencode --model zai-coding-plan/glm-5 --agent Orchestrator`)</item>
     <item>ZhipuAI GLM models via `ZHIPU_API_KEY`</item>
-    <item>GitHub Actions + devcontainers/ci — workflow trigger, runner, reproducible container</item>
-    <item>.NET SDK 10 + Aspire + Avalonia templates, Bun, uv (all in devcontainer)</item>
+    <item>GitHub Actions — CI/CD pipeline</item>
     <item>MCP servers: `@modelcontextprotocol/server-sequential-thinking`, `@modelcontextprotocol/server-memory`</item>
   </tech_stack>
 
   <repository_map>
+    <!-- Python Application (OS-APOW) -->
+    <entry><path>src/os_apow/</path><description>Python application — Four-Pillar Architecture implementation</description></entry>
+    <entry><path>src/os_apow/main.py</path><description>FastAPI entry point with health check and app configuration</description></entry>
+    <entry><path>src/os_apow/config.py</path><description>Pydantic settings management (GITHUB_TOKEN, GITHUB_ORG, GITHUB_REPO, etc.)</description></entry>
+    <entry><path>src/os_apow/ear/</path><description>Webhook receiver (The Ear) — GitHub event handling with HMAC verification</description></entry>
+    <entry><path>src/os_apow/state/</path><description>State management (The State) — GitHub Issues as work queue, label state machine</description></entry>
+    <entry><path>src/os_apow/brain/</path><description>GitHub integration (The Brain) — Sentinel orchestrator managing workers</description></entry>
+    <entry><path>src/os_apow/hands/</path><description>Execution layer (The Hands) — DevContainer orchestration for AI agents</description></entry>
+    <!-- Tests -->
+    <entry><path>tests/</path><description>Python test suite — pytest with async support</description></entry>
+    <entry><path>tests/conftest.py</path><description>Pytest fixtures and test configuration</description></entry>
+    <entry><path>tests/test_main.py</path><description>Application tests for main module</description></entry>
     <!-- Workflows -->
+    <entry><path>.github/workflows/ci.yml</path><description>Python CI pipeline — lint (Ruff), type check (MyPy), test (pytest), Docker build, security scan</description></entry>
+    <entry><path>.github/workflows/validate.yml</path><description>PowerShell/shell CI — actionlint, hadolint, shellcheck, PSScriptAnalyzer, gitleaks</description></entry>
     <entry><path>.github/workflows/orchestrator-agent.yml</path><description>Primary workflow — assembles prompt, logs into GHCR, runs opencode in devcontainer</description></entry>
     <entry><path>.github/workflows/prompts/orchestrator-agent-prompt.md</path><description>Prompt template with `__EVENT_DATA__` placeholder (sed-substituted at runtime)</description></entry>
     <entry><path>.github/workflows/publish-docker.yml</path><description>Builds Dockerfile, pushes to GHCR with branch-latest and branch-&lt;VERSION_PREFIX.run_number&gt; tags</description></entry>
@@ -78,7 +100,7 @@ scope: repository
     <entry><path>.devcontainer/devcontainer.json</path><description>Consumer devcontainer — pulls prebuilt GHCR image, forwards port 4096, and auto-starts `opencode serve` on container start</description></entry>
     <entry><path>scripts/start-opencode-server.sh</path><description>Guarded `opencode serve` bootstrapper used by the devcontainer lifecycle and workflow attach path</description></entry>
     <entry><path>scripts/run-devcontainer-orchestrator.sh</path><description>One-shot script: brings up the devcontainer, ensures the opencode server is running, and executes the orchestrator agent. Used by the workflow and can be invoked directly locally.</description></entry>
-    <!-- Tests -->
+    <!-- Shell Tests -->
     <entry><path>test/</path><description>Shell-based tests: devcontainer build, tool availability, prompt assembly</description></entry>
 
     <opencode_server>
@@ -89,8 +111,17 @@ scope: repository
       </summary>
     </opencode_server>
     <entry><path>test/fixtures/</path><description>Sample webhook payloads for local testing</description></entry>
+    <!-- Configuration -->
+    <entry><path>pyproject.toml</path><description>Project config — dependencies, tool settings (pytest, ruff, mypy, coverage)</description></entry>
+    <entry><path>uv.lock</path><description>Deterministic lockfile for reproducible builds</description></entry>
+    <entry><path>Dockerfile</path><description>Multi-stage Python build for containerized deployment</description></entry>
+    <entry><path>docker-compose.yml</path><description>Service orchestration (app, redis)</description></entry>
+    <entry><path>.env.example</path><description>Environment template with required variables</description></entry>
     <!-- Remote instructions -->
     <entry><path>local_ai_instruction_modules/</path><description>Local instruction modules (development rules, workflows, delegation, terminal commands)</description></entry>
+    <!-- Documentation -->
+    <entry><path>plan_docs/</path><description>Architecture and planning documents (external-generated, seeded at clone time)</description></entry>
+    <entry><path>.ai-repository-summary.md</path><description>AI-focused repository summary — quick reference for understanding the codebase</description></entry>
   </repository_map>
 
   <instruction_source>
@@ -127,13 +158,23 @@ scope: repository
   </environment_setup>
 
   <testing>
-    <guidance>Tests are shell scripts in `test/`. Run directly with `bash`.</guidance>
+    <guidance>Python tests use pytest in `tests/`. Shell-based tests are in `test/`.</guidance>
     <commands>
-      <command>All tests: `bash test/test-devcontainer-build.sh && bash test/test-devcontainer-tools.sh && bash test/test-prompt-assembly.sh`</command>
+      <!-- Python Tests -->
+      <command>All Python tests: `uv run pytest tests/ -v`</command>
+      <command>Python tests with coverage: `uv run pytest tests/ -v --cov=src/os_apow --cov-report=term-missing`</command>
+      <command>Specific test file: `uv run pytest tests/test_main.py -v`</command>
+      <command>Tests matching pattern: `uv run pytest -k "test_health" -v`</command>
+      <!-- Shell Tests -->
+      <command>All shell tests: `bash test/test-devcontainer-build.sh && bash test/test-devcontainer-tools.sh && bash test/test-prompt-assembly.sh`</command>
       <command>Prompt changes: `bash test/test-prompt-assembly.sh`</command>
       <command>Dockerfile changes: `bash test/test-devcontainer-tools.sh`</command>
+      <!-- Linting & Type Checking -->
+      <command>Lint: `uv run ruff check src/ tests/`</command>
+      <command>Format: `uv run ruff format src/ tests/`</command>
+      <command>Type check: `uv run mypy src/`</command>
     </commands>
-    <guidance>Add new fixture payloads to `test/fixtures/` when testing new event types.</guidance>
+    <guidance>Add new test files to `tests/` directory following pytest conventions. Add new fixture payloads to `test/fixtures/` when testing new event types.</guidance>
   </testing>
 
   <coding_conventions>
@@ -146,6 +187,13 @@ scope: repository
     <rule>`.opencode/` is checked out by `actions/checkout`; do not COPY it in the Dockerfile.</rule>
     <rule>Dockerfile lives at `.github/.devcontainer/Dockerfile`. Consumer devcontainer uses `"image:"` — no local build.</rule>
     <rule>Repository labels are defined in `.github/.labels.json`. Use `scripts/import-labels.ps1` to sync them to a repo instance. When adding new labels, add them to this file — it is the single source of truth for the label set.</rule>
+    <!-- Python-specific rules -->
+    <rule>Line length: 100 characters (configured in pyproject.toml).</rule>
+    <rule>Use async/await throughout for FastAPI routes and background tasks.</rule>
+    <rule>Use Pydantic for all data models and configuration.</rule>
+    <rule>Use `os_apow` as the first-party package name for imports.</rule>
+    <rule>Run `uv run ruff check src/ tests/` before committing Python changes.</rule>
+    <rule>Run `uv run mypy src/` to ensure type safety.</rule>
   </coding_conventions>
 
   <agent_specific_guardrails>
@@ -246,11 +294,12 @@ scope: repository
     </summary>
 
     <runtimes_and_package_managers>
+      <tool name="python" version="3.12+">`Python` — primary language for the OS-APOW application</tool>
+      <tool name="uv" version="0.10.9">`uv` — Astral Python package manager. Also provides `uvx` for ephemeral tool runs.</tool>
       <tool name="dotnet" version="10.0.102">`.NET SDK` — build, test, publish C#/F# projects. Includes Avalonia Templates 11.3.12.</tool>
       <tool name="node" version="24.14.0 LTS">`Node.js` — JavaScript runtime. Required for MCP server packages (`npx`).</tool>
       <tool name="npm">`npm` — Node package manager (bundled with Node.js).</tool>
       <tool name="bun" version="1.3.10">`Bun` — fast JavaScript/TypeScript runtime, bundler, and package manager.</tool>
-      <tool name="uv" version="0.10.9">`uv` — Astral Python package manager. Also provides `uvx` for ephemeral tool runs.</tool>
     </runtimes_and_package_managers>
 
     <cli_tools>
@@ -258,6 +307,13 @@ scope: repository
       <tool name="opencode" version="1.2.24">`opencode CLI` — AI agent runtime. Runs agents defined in `.opencode/agents/` with MCP server support.</tool>
       <tool name="git">`Git` — version control (system package + devcontainer feature).</tool>
     </cli_tools>
+
+    <python_tools>
+      <tool name="pytest">`pytest` — testing framework with async support (via `uv run pytest`)</tool>
+      <tool name="ruff">`Ruff` — fast Python linter and formatter (via `uv run ruff`)</tool>
+      <tool name="mypy">`MyPy` — static type checker (via `uv run mypy`)</tool>
+      <tool name="uvicorn">`Uvicorn` — ASGI server for FastAPI (via `uv run uvicorn`)</tool>
+    </python_tools>
 
     <github_authentication>
       <summary>
