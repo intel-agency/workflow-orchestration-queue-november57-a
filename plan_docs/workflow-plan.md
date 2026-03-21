@@ -12,7 +12,7 @@
 | Field | Value |
 |-------|-------|
 | **Workflow Name** | project-setup |
-| **Workflow File** | `ai_instruction_modules/ai-workflow-assignments/dynamic-workflows/project-setup.md` |
+| **Workflow File** | `local_ai_instruction_modules/ai-workflow-assignments/dynamic-workflows/project-setup.md` |
 | **Total Assignments** | 6 main + 3 event assignments |
 | **Purpose** | Initialize the repository, create application plan, establish project structure, and document the project for future development |
 
@@ -289,9 +289,9 @@ This workflow transforms a seeded repository containing plan documents into a fu
 │                                                                     │
 │  (Runs after each main assignment)                                  │
 │                                                                     │
-│  ┌─────────────────────────────┐  ┌────────────────────┐           │
-│  │ validate-assignment-completion│  │ report-progress    │           │
-│  └─────────────────────────────┘  └────────────────────┘           │
+│  ┌─────────────────────────────┐ │ ┌────────────────────┐           │
+│  │ validate-assignment-completion│ │ │ report-progress    │           │
+│  └─────────────────────────────┘ │ └────────────────────┘           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
