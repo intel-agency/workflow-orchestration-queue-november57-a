@@ -142,5 +142,23 @@
         "color": "5319e7",
         "default": false,
         "description": "User story"
+    },
+    {
+        "name": "plan",
+        "color": "0075ca",
+        "default": false,
+        "description": "Application plan and roadmap"
+    },
+    {
+        "name": "design",
+        "color": "5319e7",
+        "default": false,
+        "description": "Design and architecture decisions"
+    },
+    {
+        "name": "architecture",
+        "color": "bfd4f2",
+        "default": false,
+        "description": "System architecture and component design"
     }
 ]
